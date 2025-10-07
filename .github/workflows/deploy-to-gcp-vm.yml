@@ -1,0 +1,43 @@
+name: Deploy to GCP VM
+
+on:
+  push:
+    branches: [ main ]   # Runs whenever you push to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
+
+      - name: Copy files to VM
+        env:
+          HOST: ${{ secrets.VM_HOST }}
+          USER: ${{ secrets.VM_USER }}
+        run: |
+          rsync -avz --delete ./ $USER@$HOST:/home/$USER/app
+
+      - name: Restart app on VM
+        env:
+          HOST: ${{ secrets.VM_HOST }}
+          USER: ${{ secrets.VM_USER }}
+        run: |
+          ssh $USER@$HOST << 'EOF'
+            cd ~/app
+            echo "Running deployment commands on $(hostname)..."
+            # 👇 Add your app-specific restart commands here
+            # Example:
+            # sudo systemctl restart nginx
+            # npm install
+            # pm2 restart all
+            echo "✅ Deployment complete."
+          EOF
