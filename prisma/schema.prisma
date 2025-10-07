@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      UserRole @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  createdQuizzes Quiz[]         @relation("QuizCreator")
+  quizAttempts   QuizAttempt[]
+  
+  @@map("users")
+}
+
+model Quiz {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  isPublished Boolean  @default(false)
+  timeLimit   Int?     // in minutes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  creatorId String
+  creator   User   @relation("QuizCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  
+  questions    Question[]
+  quizAttempts QuizAttempt[]
+  
+  @@map("quizzes")
+}
+
+model Question {
+  id       String      @id @default(cuid())
+  text     String
+  type     QuestionType
+  points   Int         @default(1)
+  order    Int
+  
+  // Relations
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  options QuestionOption[]
+  answers Answer[]
+  
+  @@map("questions")
+}
+
+model QuestionOption {
+  id        String  @id @default(cuid())
+  text      String
+  isCorrect Boolean @default(false)
+  order     Int
+  
+  // Relations
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@map("question_options")
+}
+
+model QuizAttempt {
+  id          String           @id @default(cuid())
+  score       Int              @default(0)
+  totalPoints Int              @default(0)
+  startedAt   DateTime         @default(now())
+  completedAt DateTime?
+  status      AttemptStatus    @default(IN_PROGRESS)
+  
+  // Relations
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  
+  answers Answer[]
+  
+  @@map("quiz_attempts")
+}
+
+model Answer {
+  id String @id @default(cuid())
+  selectedText String?
+  isCorrect Boolean @default(false)
+  points Int @default(0)
+  createdAt DateTime @default(now())
+  
+  // Relations
+  attemptId String
+  attempt   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  @@map("answers")
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  SHORT_ANSWER
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
