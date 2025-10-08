@@ -35,3 +35,4 @@ jobs:
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
           ${{ secrets.USER }}@${{ secrets.HOST }} \
           "cd /home/${{ secrets.USER }}/Quiz && echo 'Files copied successfully to Quiz folder'"
+          
