@@ -32,7 +32,7 @@ jobs:
           USER: ${{ secrets.VM_USER }}
         run: |
           ssh $USER@$HOST << 'EOF'
-            cd ~/app
+            cd ~/Quiz
             echo "Running deployment commands on $(hostname)..."
             # 👇 Add your app-specific restart commands here
             # Example:
