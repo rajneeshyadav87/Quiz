@@ -12,7 +12,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
     
-    - name: Install rsync
+    - name: Install rsync on runner
       run: sudo apt-get update && sudo apt-get install -y rsync
     
     - name: Set up SSH key
@@ -30,9 +30,8 @@ jobs:
         HOST: ${{ secrets.HOST }}
         USER: ${{ secrets.USER }}
     
-    - name: Restart app on VM
+    - name: Install dependencies and restart Next.js app
       run: |
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
           ${{ secrets.USER }}@${{ secrets.HOST }} \
-          "cd /home/${{ secrets.USER }}/Quiz && echo 'Files copied successfully to Quiz folder'"
-          
+          "cd ~/Quiz && npm install && npm run build && pm2 restart quiz-app || pm2 start npm --name quiz-app -- start"
