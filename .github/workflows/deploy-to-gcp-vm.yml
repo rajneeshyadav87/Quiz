@@ -2,42 +2,33 @@ name: Deploy to GCP VM
 
 on:
   push:
-    branches: [ main ]   # Runs whenever you push to the main branch
+    branches: [ main ]  # Change to 'master' if that's your branch name
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          echo -e "Host *\n\tStrictHostKeyChecking no\n" > ~/.ssh/config
-
-      - name: Copy files to VM
-        env:
-          HOST: ${{ secrets.VM_HOST }}
-          USER: ${{ secrets.VM_USER }}
-        run: |
-          rsync -avz --delete ./ $USER@$HOST:/home/$USER/app
-
-      - name: Restart app on VM
-        env:
-          HOST: ${{ secrets.VM_HOST }}
-          USER: ${{ secrets.VM_USER }}
-        run: |
-          ssh $USER@$HOST << 'EOF'
-            cd ~/Quiz
-            echo "Running deployment commands on $(hostname)..."
-            # 👇 Add your app-specific restart commands here
-            # Example:
-            # sudo systemctl restart nginx
-            # npm install
-            # pm2 restart all
-            echo "✅ Deployment complete."
-          EOF
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        ssh-keyscan -H ${{ secrets.HOST }} >> ~/.ssh/known_hosts
+    
+    - name: Copy files to VM
+      run: |
+        rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          --delete ./ ${{ secrets.USER }}@${{ secrets.HOST }}:/home/${{ secrets.USER }}/Quiz
+      env:
+        HOST: ${{ secrets.HOST }}
+        USER: ${{ secrets.USER }}
+    
+    - name: Restart app on VM
+      run: |
+        ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ${{ secrets.USER }}@${{ secrets.HOST }} \
+          "cd /home/${{ secrets.USER }}/Quiz && echo 'Files copied successfully to Quiz folder'"
